@@ -4,7 +4,12 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const SCRIPT_DIR = path.dirname(new URL(import.meta.url).pathname);
-const READER = path.join(SCRIPT_DIR, "codex-touchbar-read.mjs");
+// MTMR_PET_READER picks which agent state feeds the pet: the default Codex
+// reader, or zcode-touchbar-read.mjs for the ZCode session state.
+const READER = path.join(
+  SCRIPT_DIR,
+  process.env.MTMR_PET_READER || "codex-touchbar-read.mjs",
+);
 
 // MTMR_PET_PREFIX picks the pet asset family, matching the frame files under
 // assets/pet/<prefix>/ (einstein, deepseek, ...). Pets share the Codex status

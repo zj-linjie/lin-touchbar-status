@@ -143,7 +143,7 @@ function classifyTool(toolName, toolInput) {
   const lowered = raw.toLowerCase();
   const command = String(toolInput?.command || "").toLowerCase();
 
-  if (/multi|subagent|collab/.test(lowered)) {
+  if (/multi|subagent|collab|^agent$|^task$/.test(lowered)) {
     return { phase: "delegate", label: "喊同事", symbol: "person.2" };
   }
   if (raw === "Bash" || /shell|exec|terminal/.test(lowered)) {
@@ -258,6 +258,16 @@ function statusForEvent(input, existing, now) {
         fileChange,
       };
     }
+    case "PostToolUseFailure":
+      return {
+        ...base,
+        status: "RUN",
+        phase: "tool_failed",
+        startedAt: existingStartedAt,
+        toolName,
+        lastMessage: "碰了个钉子",
+        symbol: "xmark.circle",
+      };
     case "PermissionRequest":
       return {
         ...base,

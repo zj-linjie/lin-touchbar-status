@@ -86,6 +86,16 @@ const config = [
   petItem(PETS[1]),
   {
     type: "shellScriptTitledButton",
+    title: "ZCode",
+    width: 76,
+    refreshInterval: 1,
+    bordered: false,
+    source: {
+      inline: `"${CODEX_NODE}" "${path.join(PROJECT_DIR, "zcode-touchbar-read.mjs")}" --text`,
+    },
+  },
+  {
+    type: "shellScriptTitledButton",
     title: "ZCode额度",
     width: 260,
     refreshInterval: 300,
@@ -102,4 +112,4 @@ const frameCount = PETS.reduce((total, pet) => {
   const frames = ROWS.reduce((sum, [, count]) => sum + count, 0);
   return total + frames;
 }, 0);
-console.log(`Wrote MTMR config with ${frameCount} frames per 2 pets and 5 items: ${CONFIG_PATH}`);
+console.log(`Wrote MTMR config with ${frameCount} frames per 2 pets and ${config.length} items: ${CONFIG_PATH}`);

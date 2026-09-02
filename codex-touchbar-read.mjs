@@ -505,6 +505,16 @@ function render(state, now = Date.now()) {
       };
     }
 
+    if (state.phase === "tool_failed" && age <= TOOL_DONE_TTL_MS) {
+      return {
+        text: state.lastMessage || "碰了个钉子",
+        backgroundColor: COLORS.error,
+        fontColor: COLORS.text,
+        sfSymbol: "xmark.circle",
+        status: "RUN",
+      };
+    }
+
     if (state.phase === "tool_done" && age <= TOOL_DONE_TTL_MS) {
       return {
         text: "刚做完",
@@ -523,6 +533,12 @@ function render(state, now = Date.now()) {
         sfSymbol: "play.circle",
         status: "RUN",
       };
+    }
+
+    // A session that only booted (no prompt sent yet) is idle, not thinking:
+    // fall back to 摸鱼中 instead of the generic 30-minute thinking state.
+    if (state.phase === "start") {
+      return renderIdle(now);
     }
 
     if (state.phase === "compact" && age <= COMPACT_TTL_MS) {
