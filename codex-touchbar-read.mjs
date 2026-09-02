@@ -6,7 +6,11 @@ import path from "node:path";
 const SCRIPT_DIR = path.dirname(new URL(import.meta.url).pathname);
 const DEFAULT_STATE_FILE = path.join(SCRIPT_DIR, ".state", "codex-touchbar-status.json");
 const STATE_FILE = process.env.CODEX_TOUCHBAR_STATE_FILE || DEFAULT_STATE_FILE;
-const CODEX_ICON_PATH = "/Applications/Codex.app/Contents/Resources/codexTemplate@2x.png";
+const APP_ICON_CANDIDATES = [
+  "/Applications/ChatGPT.app/Contents/Resources/icon-codex-dark-color.png",
+  "/Applications/Codex.app/Contents/Resources/codexTemplate@2x.png",
+];
+const FALLBACK_ICON_PATH = APP_ICON_CANDIDATES.find((candidate) => fs.existsSync(candidate));
 const PET_FRAME_DIR = path.join(SCRIPT_DIR, "assets", "pet", "frames");
 const ICON_DIR = path.join(SCRIPT_DIR, "assets", "icons");
 const TRANSPARENT = "0,0,0,0";
@@ -217,7 +221,7 @@ function petIconPath(rendered, now) {
   const frames = PET_FRAMES[petFrameKey(rendered)] || PET_FRAMES.idleWalk;
   const frame = frames[Math.floor(now / 700) % frames.length];
   const framePath = path.join(PET_FRAME_DIR, frame);
-  return fs.existsSync(framePath) ? framePath : CODEX_ICON_PATH;
+  return fs.existsSync(framePath) ? framePath : FALLBACK_ICON_PATH;
 }
 
 function assetIconPath(name) {

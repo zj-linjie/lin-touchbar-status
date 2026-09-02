@@ -279,6 +279,7 @@ function statusForEvent(input, existing, now) {
         symbol: "note.text",
       };
     case "Stop":
+    case "SessionEnd":
       return {
         ...base,
         status: "OK",
