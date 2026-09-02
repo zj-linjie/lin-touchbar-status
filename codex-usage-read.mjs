@@ -169,13 +169,27 @@ function windowLabel(window) {
   return "额度";
 }
 
-function formatRefreshTime(timestamp) {
-  const date = new Date(timestamp);
+function formatResetTime(timestamp) {
+  if (!Number.isFinite(timestamp)) return null;
+  // Codex reports resetsAt in epoch seconds; tolerate ms-shaped values.
+  const ms = timestamp >= 1e12 ? timestamp : timestamp * 1000;
+  const date = new Date(ms);
   if (!Number.isFinite(date.getTime())) return null;
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-function formatQuota(snapshot, fetchedAt) {
+// Every account/rateLimits/read reports resetsAt as read-time + window
+// length (verified: two reads one minute apart drift by that minute), so
+// anchoring the display to each read would make the reset time advance
+// forever. Keep the previously observed window end until it lapses.
+function resolveWindowEnd(snapshot, previousEnd, now) {
+  if (Number.isFinite(previousEnd) && previousEnd > now) return previousEnd;
+  const fresh = snapshot?.primary?.resetsAt;
+  if (!Number.isFinite(fresh)) return null;
+  return fresh >= 1e12 ? fresh : fresh * 1000;
+}
+
+function formatQuota(snapshot, windowEnd) {
   const windows = [snapshot?.primary, snapshot?.secondary].filter(Boolean);
   if (windows.length === 0) return "GPT暂不可用";
 
@@ -188,16 +202,17 @@ function formatQuota(snapshot, fetchedAt) {
   if (credits?.unlimited) parts.push("积分无限");
   else if (credits?.hasCredits && credits.balance) parts.push(`积分${credits.balance}`);
 
-  const refresh = formatRefreshTime(fetchedAt);
-  const refreshPart = refresh ? `-${refresh}` : "";
-  return `GPT${parts[0]}${refreshPart}${parts.slice(1).map((part) => `-${part}`).join("")}`;
+  // The bare time is the 5h window's quota reset time on the local clock.
+  const reset = formatResetTime(windowEnd);
+  const resetPart = reset ? `-${reset}` : "";
+  return `GPT${parts[0]}${resetPart}${parts.slice(1).map((part) => `-${part}`).join("")}`;
 }
 
 async function main() {
   const cached = readCache();
   const cacheIsFresh = cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
   if (cacheIsFresh) {
-    console.log(formatQuota(cached.rateLimits, cached.fetchedAt));
+    console.log(formatQuota(cached.rateLimits, cached.windowEnd));
     return;
   }
 
@@ -206,11 +221,12 @@ async function main() {
     const rateLimits = normalizeRateLimits(result);
     if (!rateLimits) throw new Error("Codex returned no rate-limit snapshot");
     const fetchedAt = Date.now();
-    writeCache({ fetchedAt, rateLimits });
-    console.log(formatQuota(rateLimits, fetchedAt));
+    const windowEnd = resolveWindowEnd(rateLimits, cached?.windowEnd, fetchedAt);
+    writeCache({ fetchedAt, rateLimits, windowEnd });
+    console.log(formatQuota(rateLimits, windowEnd));
   } catch (error) {
     debug(error instanceof Error ? error.message : String(error));
-    if (cached) console.log(`~${formatQuota(cached.rateLimits, cached.fetchedAt)}`);
+    if (cached) console.log(`~${formatQuota(cached.rateLimits, cached.windowEnd)}`);
     else console.log("额度暂不可用");
   }
 }

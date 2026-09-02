@@ -116,13 +116,26 @@ function windowLabel(window) {
   return "额度";
 }
 
+function formatResetTime(timestamp) {
+  if (!Number.isFinite(timestamp)) return null;
+  // BigModel reports nextResetTime in epoch milliseconds; tolerate seconds.
+  const ms = timestamp >= 1e12 ? timestamp : timestamp * 1000;
+  const date = new Date(ms);
+  if (!Number.isFinite(date.getTime())) return null;
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 function formatQuota(limits) {
   if (limits.length === 0) return "GLM额度暂不可用";
   const parts = limits.map((window) => {
     const remaining = 100 - window.usedPercent;
     return `${windowLabel(window)}余${remaining}%`;
   });
-  return `GLM${parts.join("-")}`;
+  // Same convention as the Codex slot: the bare time is the 5h window's
+  // quota reset time on the local clock.
+  const reset = formatResetTime(limits[0]?.nextResetTime);
+  const resetPart = reset ? `-${reset}` : "";
+  return `GLM${parts[0]}${resetPart}${parts.slice(1).map((part) => `-${part}`).join("")}`;
 }
 
 async function main() {
