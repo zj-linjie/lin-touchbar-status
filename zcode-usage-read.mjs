@@ -125,7 +125,7 @@ function formatResetTime(timestamp) {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-function formatQuota(limits) {
+function formatQuota(limits, windowEnd) {
   if (limits.length === 0) return "GLM额度暂不可用";
   const parts = limits.map((window) => {
     const remaining = 100 - window.usedPercent;
@@ -133,15 +133,28 @@ function formatQuota(limits) {
   });
   // Same convention as the Codex slot: the bare time is the 5h window's
   // quota reset time on the local clock.
-  const reset = formatResetTime(limits[0]?.nextResetTime);
+  const reset = formatResetTime(windowEnd);
   const resetPart = reset ? `-${reset}` : "";
   return `GLM${parts[0]}${resetPart}${parts.slice(1).map((part) => `-${part}`).join("")}`;
+}
+
+// BigModel returns nextResetTime only while the 5h window holds unreturned
+// consumption (idle at 100% remaining omits the field), and the value rolls
+// with the latest request. While idle, anchor now + window length and keep
+// it until it lapses, mirroring the Codex slot, instead of re-anchoring on
+// every poll.
+function resolveWindowEnd(limits, previousEnd, now) {
+  const fresh = limits[0]?.nextResetTime;
+  if (Number.isFinite(fresh)) return fresh >= 1e12 ? fresh : fresh * 1000;
+  if (Number.isFinite(previousEnd) && previousEnd > now) return previousEnd;
+  const minutes = limits[0]?.windowMinutes;
+  return Number.isFinite(minutes) && minutes > 0 ? now + minutes * 60_000 : null;
 }
 
 async function main() {
   const cached = readCache();
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) {
-    console.log(formatQuota(cached.limits));
+    console.log(formatQuota(cached.limits, cached.windowEnd));
     return;
   }
 
@@ -150,11 +163,13 @@ async function main() {
     if (!apiKey) throw new Error("No BigModel API key found in ZCode config");
     const limits = normalizeLimits(await requestQuotaLimits(apiKey));
     if (limits.length === 0) throw new Error("BigModel returned no plan limits");
-    writeCache({ fetchedAt: Date.now(), limits });
-    console.log(formatQuota(limits));
+    const fetchedAt = Date.now();
+    const windowEnd = resolveWindowEnd(limits, cached?.windowEnd, fetchedAt);
+    writeCache({ fetchedAt, limits, windowEnd });
+    console.log(formatQuota(limits, windowEnd));
   } catch (error) {
     debug(error instanceof Error ? error.message : String(error));
-    if (cached) console.log(`~${formatQuota(cached.limits)}`);
+    if (cached) console.log(`~${formatQuota(cached.limits, cached.windowEnd)}`);
     else console.log("ZCode额度暂不可用");
   }
 }
