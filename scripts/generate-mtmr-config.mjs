@@ -5,7 +5,6 @@ import path from "node:path";
 
 const SCRIPT_DIR = path.dirname(new URL(import.meta.url).pathname);
 const PROJECT_DIR = path.dirname(SCRIPT_DIR);
-const FRAME_DIR = path.join(PROJECT_DIR, "assets", "pet", "einstein");
 const CODEX_NODE = "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node";
 const CONFIG_PATH = path.join(
   process.env.HOME,
@@ -15,6 +14,8 @@ const CONFIG_PATH = path.join(
   "items.json",
 );
 
+// Both pet atlases share the Codex pet grid, so the same rows/counts work for
+// every pet under assets/pet/<name>/ (see scripts/extract-mtmr-pet-frames.sh).
 const ROWS = [
   [0, 6],
   [1, 8],
@@ -24,40 +25,48 @@ const ROWS = [
   [7, 6],
 ];
 
-function framePath(row, frame) {
-  return path.join(FRAME_DIR, `einstein-r${row}-${frame}.png`);
+const PETS = [
+  { name: "einstein", script: "mtmr-pet.applescript", width: 24 },
+  { name: "deepseek", script: "mtmr-pet-deepseek.applescript", width: 24 },
+];
+
+function framePath(petName, row, frame) {
+  return path.join(PROJECT_DIR, "assets", "pet", petName, `${petName}-r${row}-${frame}.png`);
 }
 
-function image(row, frame) {
+function image(petName, row, frame) {
   return {
-    base64: fs.readFileSync(framePath(row, frame)).toString("base64"),
+    base64: fs.readFileSync(framePath(petName, row, frame)).toString("base64"),
   };
 }
 
-const alternativeImages = {};
-for (const [row, count] of ROWS) {
-  for (let frame = 0; frame < count; frame += 1) {
-    alternativeImages[`einstein-r${row}-${frame}`] = image(row, frame);
+function petItem(pet) {
+  const alternativeImages = {};
+  for (const [row, count] of ROWS) {
+    for (let frame = 0; frame < count; frame += 1) {
+      alternativeImages[`${pet.name}-r${row}-${frame}`] = image(pet.name, row, frame);
+    }
   }
-}
-
-const config = [
-  {
+  return {
     type: "appleScriptTitledButton",
     title: " ",
-    width: 32,
+    width: pet.width,
     refreshInterval: 0.7,
     bordered: false,
     source: {
-      filePath: path.join(PROJECT_DIR, "mtmr-pet.applescript"),
+      filePath: path.join(PROJECT_DIR, pet.script),
     },
-    image: image(0, 0),
+    image: image(pet.name, 0, 0),
     alternativeImages,
-  },
+  };
+}
+
+const config = [
+  petItem(PETS[0]),
   {
     type: "shellScriptTitledButton",
     title: "Codex",
-    width: 112,
+    width: 76,
     refreshInterval: 1,
     bordered: false,
     source: {
@@ -67,15 +76,30 @@ const config = [
   {
     type: "shellScriptTitledButton",
     title: "额度",
-    width: 320,
+    width: 260,
     refreshInterval: 300,
     bordered: false,
     source: {
       inline: `"${CODEX_NODE}" "${path.join(PROJECT_DIR, "codex-usage-read.mjs")}"`,
     },
   },
+  petItem(PETS[1]),
+  {
+    type: "shellScriptTitledButton",
+    title: "ZCode额度",
+    width: 260,
+    refreshInterval: 300,
+    bordered: false,
+    source: {
+      inline: `"${CODEX_NODE}" "${path.join(PROJECT_DIR, "zcode-usage-read.mjs")}"`,
+    },
+  },
 ];
 
 fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
 fs.writeFileSync(CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
-console.log(`Wrote MTMR config with ${Object.keys(alternativeImages).length} Einstein frames: ${CONFIG_PATH}`);
+const frameCount = PETS.reduce((total, pet) => {
+  const frames = ROWS.reduce((sum, [, count]) => sum + count, 0);
+  return total + frames;
+}, 0);
+console.log(`Wrote MTMR config with ${frameCount} frames per 2 pets and 5 items: ${CONFIG_PATH}`);

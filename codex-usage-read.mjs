@@ -159,7 +159,7 @@ function normalizeRateLimits(result) {
 
 function windowLabel(window) {
   if (window.windowDurationMins === 300) return "5h";
-  if (window.windowDurationMins === 10_080) return "7d";
+  if (window.windowDurationMins === 10_080) return "周";
   if (window.windowDurationMins && window.windowDurationMins % 1_440 === 0) {
     return `${window.windowDurationMins / 1_440}d`;
   }
@@ -177,7 +177,7 @@ function formatRefreshTime(timestamp) {
 
 function formatQuota(snapshot, fetchedAt) {
   const windows = [snapshot?.primary, snapshot?.secondary].filter(Boolean);
-  if (windows.length === 0) return "额度暂不可用";
+  if (windows.length === 0) return "GPT暂不可用";
 
   const parts = windows.map((window) => {
     const remaining = 100 - window.usedPercent;
@@ -189,8 +189,8 @@ function formatQuota(snapshot, fetchedAt) {
   else if (credits?.hasCredits && credits.balance) parts.push(`积分${credits.balance}`);
 
   const refresh = formatRefreshTime(fetchedAt);
-  const refreshPart = refresh ? `-刷新:${refresh}` : "";
-  return `额度${parts[0]}${refreshPart}${parts.slice(1).map((part) => `-${part}`).join("")}`;
+  const refreshPart = refresh ? `-${refresh}` : "";
+  return `GPT${parts[0]}${refreshPart}${parts.slice(1).map((part) => `-${part}`).join("")}`;
 }
 
 async function main() {
