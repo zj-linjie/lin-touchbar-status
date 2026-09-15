@@ -30,6 +30,25 @@ const PETS = [
   { name: "deepseek", script: "mtmr-pet-deepseek.applescript", width: 24 },
 ];
 
+// 单击额度槽位唤出对应 agent 的桌面窗口；bundle id 与文件夹名不同：
+// ChatGPT.app 是 com.openai.codex，ZCode.app 是 dev.zcode.app。
+// reopen 先于 activate：activate 只能前置已显示的窗口，最小化进 Dock 的
+// 窗口要靠 reopen（等同点一下 Dock 图标）还原，且 reopen 不需要辅助访问权限。
+function focusActions(bundleId) {
+  return [
+    {
+      trigger: "singleTap",
+      action: "appleScript",
+      actionAppleScript: {
+        inline: `tell application id "${bundleId}"
+reopen
+activate
+end tell`,
+      },
+    },
+  ];
+}
+
 function framePath(petName, row, frame) {
   return path.join(PROJECT_DIR, "assets", "pet", petName, `${petName}-r${row}-${frame}.png`);
 }
@@ -82,6 +101,7 @@ const config = [
     source: {
       inline: `"${CODEX_NODE}" "${path.join(PROJECT_DIR, "codex-usage-read.mjs")}"`,
     },
+    actions: focusActions("com.openai.codex"),
   },
   petItem(PETS[1]),
   {
@@ -103,6 +123,7 @@ const config = [
     source: {
       inline: `"${CODEX_NODE}" "${path.join(PROJECT_DIR, "zcode-usage-read.mjs")}"`,
     },
+    actions: focusActions("dev.zcode.app"),
   },
 ];
 
