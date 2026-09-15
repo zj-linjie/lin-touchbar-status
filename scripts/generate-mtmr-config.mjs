@@ -34,7 +34,15 @@ const PETS = [
 // ChatGPT.app 是 com.openai.codex，ZCode.app 是 dev.zcode.app。
 // reopen 先于 activate：activate 只能前置已显示的窗口，最小化进 Dock 的
 // 窗口要靠 reopen（等同点一下 Dock 图标）还原，且 reopen 不需要辅助访问权限。
-function focusActions(bundleId) {
+//
+// 最小化走双击（trigger: doubleTap）：MTMR 0.27 的 longTap 依赖自定义
+// touchesBegan 触摸检测，在 macOS 27 上收不到事件（单击管线正常），因此
+// 长按无法使用；doubleTap 与单击共用同一识别器。开启双击后单击动作会有
+// 0.3s 的双击判定延迟。首次双击时系统会弹"MTMR 想要控制系统事件"授权，
+// 允许一次即可；权限缺失时静默无效。
+// 注意：Chromium/Electron 字典不支持 close/hide/miniaturized，故最小化
+// 走 System Events 的 AXMinimized，需要 MTMR 在辅助功能权限中已启用。
+function focusActions(bundleId, processName) {
   return [
     {
       trigger: "singleTap",
@@ -43,6 +51,19 @@ function focusActions(bundleId) {
         inline: `tell application id "${bundleId}"
 reopen
 activate
+end tell`,
+      },
+    },
+    {
+      trigger: "doubleTap",
+      action: "appleScript",
+      actionAppleScript: {
+        inline: `tell application "System Events" to tell process "${processName}"
+repeat with w in windows
+try
+set value of attribute "AXMinimized" of w to true
+end try
+end repeat
 end tell`,
       },
     },
@@ -101,7 +122,7 @@ const config = [
     source: {
       inline: `"${CODEX_NODE}" "${path.join(PROJECT_DIR, "codex-usage-read.mjs")}"`,
     },
-    actions: focusActions("com.openai.codex"),
+    actions: focusActions("com.openai.codex", "ChatGPT"),
   },
   petItem(PETS[1]),
   {
@@ -123,7 +144,7 @@ const config = [
     source: {
       inline: `"${CODEX_NODE}" "${path.join(PROJECT_DIR, "zcode-usage-read.mjs")}"`,
     },
-    actions: focusActions("dev.zcode.app"),
+    actions: focusActions("dev.zcode.app", "ZCode"),
   },
 ];
 
