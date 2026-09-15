@@ -6,3 +6,6 @@ wechat-codex-touchbar-article-revised.md
 .wechat-codex-touchbar-article-revised.assets/
 .idea/
 .DS_Store
+out/
+.venv/
+.video_agent/

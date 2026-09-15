@@ -1,226 +1,219 @@
-# Codex Touch Bar Buddy
+<div align="center">
+<img src="assets/readme/hero.svg" alt="Touch Bar Agent Status — Touch Bar 上的 Codex 与 GLM 双代理状态灯，两只宠物搭子分别跟随 Codex 与 GLM 的会话状态，旁边是各自的额度余量与重置时间" width="100%">
+</div>
 
-一个给 Touch Bar 用的 Codex 工作搭子状态灯。
+# Touch Bar Agent Status
 
-## Files
+<p align="center">
+<b>简体中文</b> · <a href="README.en.md">English</a> · <b>Fork</b> from <a href="https://github.com/PPPHUANG/touch-bar-agent-status">PPPHUANG/touch-bar-agent-status</a>
+</p>
 
-- `codex-touchbar-hook.mjs`: Codex lifecycle hook 写入器。
-- `codex-touchbar-read.mjs`: MTMR Shell Script Widget 读取器。
-- `codex-usage-read.mjs`: 通过本机 Codex app-server 读取账户额度的 MTMR 读取器。
-- `mtmr-pet-read.mjs`: 将 Codex 状态映射为 Einstein 宠物帧。
-- `mtmr-pet.applescript`: 供 MTMR 动态切换宠物图片的 AppleScript。
-- `install-codex-hooks.mjs`: 把 hooks 安装到 `~/.codex/hooks.json`。
-- `scripts/extract-codex-pet-assets.mjs`: 从 Codex App 包里抽取官方宠物 spritesheet。
-- `scripts/generate-touchbar-pet-frames.py`: 把官方宠物 spritesheet 裁成 Touch Bar 小帧。
-- `scripts/extract-mtmr-pet-frames.sh`: 从 Einstein 宠物 atlas 提取 MTMR 帧。
-- `assets/pet/frames/*.png`: Touch Bar 使用的小宠物帧。
-- `assets/pet/einstein/*.png`: Einstein 动态宠物的 MTMR 帧。
-- `.state/codex-touchbar-status.json`: 运行时状态文件，自动生成。
-- `.state/codex-touchbar-usage.json`: 额度快照缓存，自动生成。
+> [!NOTE]
+> **本项目 Fork 自 [PPPHUANG/touch-bar-agent-status](https://github.com/PPPHUANG/touch-bar-agent-status)。**
+> 原项目是 Codex 的 Touch Bar 状态灯（Einstein 宠物 + 状态槽位），感谢原作者的创意与实现。
+> 本 Fork 在其基础上新增了 **ZCode（GLM）双代理支持**：DeepSeek 宠物、GLM 状态槽位、GLM 额度槽位，以及两边的额度重置时间显示。完整差异见[与上游的差异](#与上游的差异)。
 
-状态文件只保存事件、工作目录、模型、工具名和时间戳；不会保存用户 prompt 或 assistant 正文。
+把 MacBook 的 Touch Bar 变成 AI 编程代理的工作状态灯：**Codex** 和 **ZCode（GLM）** 各有一条"宠物 + 状态文字 + 额度"组合，谁在摸鱼、谁在跑命令、谁在等你点头审批、额度还剩多少，扫一眼就知道。
 
-## Status Preview
+## 它能做什么
 
-这是一组最新的真实 Touch Bar 截图。主槽位负责表达 Codex 当前状态，副槽位显示耗时、工具、文件增删行数和当前文件。
+- 🚦 **实时状态灯** — 通过 agent 的生命周期 hooks 实时反映会话状态：想方案、跑命令、改文件、等审批、收工，全部秒级切换。
+- 🐬 **两只宠物搭子** — Einstein 跟着 Codex 干活，DeepSeek 跟着 GLM 干活，0.7 秒一帧地在 Touch Bar 上散步、奔跑或垂头丧气。
+- 📊 **双额度槽位** — GPT 的 5 小时/周窗口与 GLM 的 5 小时/周积分各自显示剩余百分比和重置时间。
+- 🔒 **隐私友好** — 状态文件只保存事件名、工具名和时间戳，额度缓存只保存百分比与时间戳；不保存 prompt 与回复正文，API key 只在运行时从本机配置读取、绝不入库。
 
-思考时，会显示蓝色主状态、耗时和 `Think`：
+## 真实效果
 
-![Thinking status](assets/readme/status-thinking.png)
+以下均为真实 Touch Bar 截图（Einstein 在槽位内的小图是早期版本，现在宠物是独立槽位，状态视觉一致）：
 
-需要授权时，会切到紫色审批态：
+**思考中** —— 蓝色主状态 + 耗时：
 
-![Permission status](assets/readme/status-permission.png)
+![Thinking](assets/readme/status-thinking.png)
 
-跑命令时，会显示终端图标、命令工具和运行时间：
+**跑命令** —— 终端图标 + 工具名 + 运行时间：
 
-![Command status](assets/readme/status-command.png)
+![Command](assets/readme/status-command.png)
 
-改文件时，会显示当前文件、Patch、绿色新增行和红色删除行：
+**改文件** —— 显示补丁增删行数（单文件 `xxx.mjs +3 -0`，多文件 `3文件 +24 -6`）：
 
-![Edit status](assets/readme/status-edit.png)
+![Edit](assets/readme/status-edit.png)
 
-浏览/检查页面时，会显示 `Browser` 或 `inspect`：
+**等审批** —— 紫色审批态，90 秒无人处理自动回摸鱼：
 
-![Browser status](assets/readme/status-browser.png)
+![Permission](assets/readme/status-permission.png)
 
-![Inspect done status](assets/readme/status-inspect-done.png)
+**摸鱼中** —— 一切合理的空闲状态：
 
-任务结束后，会短暂显示完成态：
+![Idle](assets/readme/status-idle.png)
 
-![Done status](assets/readme/status-done.png)
+<details>
+<summary>更多状态截图（浏览网页、收工、命令收工等）</summary>
 
-![Command done status](assets/readme/status-command-done.png)
+![Browser](assets/readme/status-browser.png)
 
-空闲时，它会进入一种非常合理的工作状态：摸鱼中。旁边还有一个 Codex 小宠物，在 Touch Bar 上慢慢走路。
+![Inspect done](assets/readme/status-inspect-done.png)
 
-![Idle status](assets/readme/status-idle.png)
+![Done](assets/readme/status-done.png)
 
-## Quick Start
+![Command done](assets/readme/status-command-done.png)
 
-如果你是第一次从 GitHub 拉下这个项目，推荐按下面顺序配置：
+![Other 1](assets/readme/status-other-1.png)
 
-1. 准备环境：
-   安装 `ChatGPT.app` 和免费的 MTMR，并确认 `ChatGPT.app` 在 `/Applications/ChatGPT.app`。ChatGPT.app 内置了 Codex 和 Node，无需单独安装 Codex.app。
+![Other 2](assets/readme/status-other-2.png)
 
-2. 安装 hooks：
+</details>
 
-```sh
-"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node" "/你的项目路径/install-codex-hooks.mjs"
-```
+## 工作原理
 
-3. 在 Codex 里 trust hooks：
-   运行 `codex` 后输入 `/hooks`，审查并选择 `Trust all and continue`。本安装器会把 hook 合并到 `~/.codex/hooks.json`，并保留已有的其他 hooks。
+<div align="center">
+<img src="assets/readme/how-it-works.svg" alt="工作原理：Codex 与 ZCode 的会话 hooks 写入状态文件，额度接口写入额度缓存，MTMR 按 1 秒/0.7 秒/5 分钟的周期渲染 Touch Bar 槽位" width="100%">
+</div>
 
-4. 配置 MTMR：
-   打开 `~/Library/Application Support/MTMR/items.json`，保留主状态的 `shellScriptTitledButton`，并加入 Einstein 动态宠物和额度按钮。当前项目的完整配置已经包含这三个按钮；如果需要重新生成宠物帧，可运行：
+两条数据流，全部只读、全部本地：
 
-```sh
-bash "/你的项目路径/scripts/extract-mtmr-pet-frames.sh"
-```
+1. **状态流** — agent 会话触发生命周期 hooks（Codex 9 个事件、ZCode 7 个事件），hook 脚本把当前状态写进 `.state/*-touchbar-status.json`；MTMR 槽位每秒读取并渲染状态文字，宠物每 0.7 秒换帧。
+2. **额度流** — GPT 额度走本机 Codex `app-server` 的只读 `account/rateLimits/read`，GLM 额度走 BigModel 的 `quota/limit` 监控接口，各配 5 分钟缓存；细节见 [docs/zcode-usage-api.md](docs/zcode-usage-api.md)。
 
-主状态按钮示例：
+## 状态一览
 
-```json
-{
-  "type": "shellScriptTitledButton",
-  "title": "Codex",
-  "width": 112,
-  "refreshInterval": 1,
-  "bordered": false,
-  "source": {
-    "inline": "\"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node\" \"/你的项目路径/codex-touchbar-read.mjs\" --text"
-  }
-}
-```
+两个代理共用同一套状态机与文案：
 
-额度槽位会放在主状态右侧，每 5 分钟读取一次 Codex 的账户限额，并显示短期额度、最近刷新时间和周期额度，例如 `额度5h余100%-刷新:18:52-7d余42%`：
+| Touch Bar 显示 | 状态 | 触发时机 |
+|---|---|---|
+| 摸鱼中… | IDLE | 无会话或状态过期，省略号循环动画 |
+| 接上回合 / 开工了 | RUN | 会话启动（SessionStart），显示 4 秒 |
+| 我想想… | RUN | 用户提交 prompt、模型思考中、工具调用间隙 |
+| 跑个命令 | TOOL | Bash 执行中，10 秒后追加耗时 |
+| 改两笔 / `文件 +N -M` | TOOL | Edit/Write/补丁执行中 |
+| 去看一眼 | TOOL | 浏览器 / 搜索 / MCP 类工具 |
+| 喊同事 | TOOL | 派子代理（Agent/Task）干活 |
+| 忙一下 | TOOL | 其他工具兜底 |
+| 刚做完 | RUN | 单个工具完成，闪 3 秒 |
+| 碰了个钉子 | RUN | 工具执行失败，闪 3 秒 |
+| 等你点头 | WAIT | 权限确认等待，最多保留 90 秒 |
+| 收工啦 | OK | 回合结束，显示 20 秒后回摸鱼 |
+| 有点卡住 | ERR | hook 自身异常（正常使用不会出现） |
 
-```json
-{
-  "type": "shellScriptTitledButton",
-  "title": "额度",
-  "width": 320,
-  "refreshInterval": 300,
-  "bordered": false,
-  "source": {
-   "inline": "\"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node\" \"/你的项目路径/codex-usage-read.mjs\""
-  }
-}
-```
+宠物行为映射：IDLE → 走路（row 0），RUN → 奔跑（row 7），TOOL → 动手（row 1），WAIT → 张望（row 6），OK → 挥手（row 3），ERR → 失落（row 5）。
 
-读取器只调用本机 Codex app-server 的只读 `account/rateLimits/read` 方法；缓存中只保存百分比和重置时间，不保存账号 Token 或对话内容。
+## 快速开始
 
-5. 主状态刷新间隔设为 `1` 或 `2` 秒；额度按钮保持 `300` 秒（5 分钟），避免频繁请求账户接口。
+### 0. 环境
 
-6. 验证是否成功：
+- macOS + 带 Touch Bar 的 MacBook，安装免费的 [MTMR](https://github.com/Toxblh/MTMR)：
+  ```sh
+  brew install --cask mtmr
+  ```
+- [ChatGPT.app](https://chatgpt.com/download)（自带 Codex CLI 与 Node 运行时，需位于 `/Applications/ChatGPT.app`；没有该路径时安装器会回退到 PATH 里的 node）。
+- 想要 GLM 状态灯/额度槽位：安装并登录 [ZCode](https://zcode.z.ai)，且拥有个人套餐（coding plan）。只要 Codex 状态灯可跳过。
+
+### 1. 克隆并安装
 
 ```sh
-"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node" "/你的项目路径/codex-touchbar-read.mjs" --text
+git clone https://github.com/zj-linjie/lin-touchbar-status.git
+cd lin-touchbar-status
+
+NODE="/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node"
+
+"$NODE" install-codex-hooks.mjs          # Codex 状态灯 hooks
+"$NODE" install-zcode-hooks.mjs          # GLM 状态灯 hooks（可选）
+"$NODE" scripts/generate-mtmr-config.mjs # 生成 6 槽位 MTMR 配置
+killall MTMR; open -a MTMR               # 重启 MTMR 生效
 ```
 
-如果能看到 `摸鱼中...` 之类的输出，说明读取脚本是正常的。随后在 Codex 里跑一次简单命令，比如 `date`，Touch Bar 应该会切到思考、命令、完成这些状态。
+### 2. 信任 hooks
 
-`/你的项目路径/` 需要替换成你自己 clone 下来的实际目录，例如：
+- **Codex**：运行 `codex`，输入 `/hooks`，审查并选择 `Trust all and continue`（脚本更新后需重新 trust，属正常行为）。
+- **ZCode**：配置文件钩子无需信任步骤，**重开一个 ZCode 会话即生效**（hooks 配置在会话启动时快照）。
+
+### 3. 验证
 
 ```sh
-/Users/yourname/Documents/touch-bar-agent-status
+"$NODE" codex-touchbar-read.mjs --text   # 输出 摸鱼中...
+"$NODE" zcode-touchbar-read.mjs --text   # 输出 摸鱼中...
+"$NODE" codex-usage-read.mjs             # 输出 GPT5h余100%-08:28-周余0%
+"$NODE" zcode-usage-read.mjs             # 输出 GLM5h余100%-08:28-周余76%
 ```
 
-## MTMR Widget
+然后在 Codex / ZCode 里各跑一轮真实任务，Touch Bar 应依次切换：我想想 → 跑个命令 → 收工啦 → 摸鱼中，宠物同步换姿势。
 
-MTMR 是免费的开源 Touch Bar 工具。安装方式：
+## 槽位布局
 
-```sh
-brew install --cask mtmr
-```
+`scripts/generate-mtmr-config.mjs` 会生成以下 6 槽位（修改布局请改该脚本后重新生成）：
 
-如果 Homebrew cask loader 报错，也可以从 MTMR 官方 Release 下载并放入 `/Applications`。
+| # | 槽位 | 实现 | 宽度 | 刷新 |
+|---|---|---|---|---|
+| 1 | Einstein 宠物（跟 Codex） | `mtmr-pet.applescript` | 24 | 0.7s |
+| 2 | Codex 状态 | `codex-touchbar-read.mjs --text` | 76 | 1s |
+| 3 | GPT 额度 | `codex-usage-read.mjs` | 260 | 5min |
+| 4 | DeepSeek 宠物（跟 GLM） | `mtmr-pet-deepseek.applescript` | 24 | 0.7s |
+| 5 | GLM 状态 | `zcode-touchbar-read.mjs --text` | 76 | 1s |
+| 6 | GLM 额度 | `zcode-usage-read.mjs` | 260 | 5min |
 
-MTMR 配置文件是 `~/Library/Application Support/MTMR/items.json`。主状态使用 Shell Script 按钮和读取器的 `--text` 参数；独立 Einstein 宠物使用 `appleScriptTitledButton` 的 `alternativeImages` 动态切帧：
+## 额度显示细节
 
-```json
-[
-  {
-    "type": "shellScriptTitledButton",
-    "title": "Codex",
-    "width": 112,
-    "refreshInterval": 1,
-    "bordered": false,
-    "source": {
-      "inline": "\"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node\" \"/Users/apple/dev/touch-bar-agent-status/codex-touchbar-read.mjs\" --text"
-    }
-  }
-]
-```
+两边的重置时间都不是接口直接给的固定值，需要一点客户端处理：
 
-当前配置中的第一个按钮是 Einstein 宠物槽位，第二个按钮是主状态文字槽位，第三个按钮是额度槽位。宠物状态映射为：空闲使用 idle，思考使用 running，运行工具使用 running-right，等待授权使用 waiting，完成使用 waving，错误使用 failed。宠物帧由 `mtmr-pet-read.mjs` 每 0.7 秒选择一次。
+- **GPT（Codex）**：`resetsAt` 实测恒等于"读数时刻 + 5 小时"（滚动窗口）。直接显示会永远差 5 小时，因此读取器在首次观察到时锚定窗口终点，之后稳定倒计时，过期后自动重新锚定。
+- **GLM（ZCode）**：BigModel 只在 5 小时窗口内有消耗时才返回 `nextResetTime`（滚动窗口，跟随最近一次请求）。有值时直接显示（与 App 用量页一致）；额度 100% 无消耗时显示"首次观察到时刻 + 5h"的占位锚点，开始消耗后自动切换为真实值。
+- 多个并发会话共享一份状态/缓存文件，后写覆盖；`~` 前缀表示接口失败、正在展示过期缓存。
 
-如果需要重新从原始资源包生成帧：
+## 宠物
 
-```sh
-bash "/Users/apple/dev/touch-bar-agent-status/scripts/extract-mtmr-pet-frames.sh" \
-  "/Users/apple/.codex/pets/einstein/spritesheet.webp"
-```
+- 宠物帧来自 agent 自带的 spritesheet（9 行 × 每行 6-8 帧），由 `scripts/extract-mtmr-pet-frames.sh` 裁切，帧文件在 `assets/pet/<名字>/`。
+- 宠物槽位通过两个环境变量解耦素材与数据源：`MTMR_PET_PREFIX` 选素材（einstein / deepseek），`MTMR_PET_READER` 选跟随哪个代理的会话状态（默认 Codex，GLM 用 `zcode-touchbar-read.mjs`）。
+- 想加新宠物？把它的 spritesheet 交给提取脚本，再把一组帧文件放进 `assets/pet/<名字>/` 并在 `scripts/generate-mtmr-config.mjs` 里登记即可。
 
-如果只想先确认文字，可以运行：
+## 进阶：一个读取器拆多槽位
 
-```sh
-"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node" "/Users/apple/dev/touch-bar-agent-status/codex-touchbar-read.mjs" --text
-```
+`codex-touchbar-read.mjs` 与 `zcode-touchbar-read.mjs` 支持按槽位输出，可在 MTMR 里自由拼装：
 
-如果想查看当前状态对应的 SF Symbol 名称，可以运行：
+| 参数 | 显示 |
+|---|---|
+| `--text`（默认主状态） | `我想想...` / `跑个命令` / `摸鱼中...` |
+| `--slot timer --text` | 当前回合耗时，如 `00:18` |
+| `--slot tool --text` | 当前工具：`Bash` / `Patch` / `Browser` |
+| `--slot diff --text` | 补丁行数 `+12 -3`（`diff-add` / `diff-remove` 可分开显示） |
+| `--slot file --text` | 当前文件名 |
+| `--slot pet --text` | 只显示宠物图标 |
+| `--meta-json` | 调试用：状态、颜色与 SF Symbol 的 JSON |
 
-```sh
-"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node" "/Users/apple/dev/touch-bar-agent-status/codex-touchbar-read.mjs" --meta-json
-```
+`--slot` 的完整行为见 `codex-touchbar-read.mjs`。等待审批的保留时长可用环境变量 `CODEX_TOUCHBAR_WAIT_STALE_MS` 调整（默认 90 秒）。
 
-`--meta-json` 可用于调试当前状态、颜色和 SF Symbol。MTMR 的 Shell Script Widget 主要使用文本输出。
+## 文件结构
 
-授权态默认最多保留 `90` 秒。如果用户拒绝、取消或 Codex 没有继续发出后续 hook，Touch Bar 会自动回到空闲态，避免一直卡在 `等你点头`。如需调整，可以给 MTMR 的 Shell Script Widget 设置环境变量 `CODEX_TOUCHBAR_WAIT_STALE_MS`。
+| 文件 | 作用 |
+|---|---|
+| `codex-touchbar-hook.mjs` | Codex hooks 写入器（共享状态机，ZCode 复用） |
+| `zcode-touchbar-hook.mjs` | ZCode hooks 桥接（指向独立状态文件） |
+| `codex-touchbar-read.mjs` | Codex 状态读取器（状态文字 / 宠物行 / 各槽位） |
+| `zcode-touchbar-read.mjs` | GLM 状态读取器（同上，读 ZCode 状态文件） |
+| `codex-usage-read.mjs` | GPT 额度读取器（本机 Codex app-server） |
+| `zcode-usage-read.mjs` | GLM 额度读取器（BigModel monitor API） |
+| `install-codex-hooks.mjs` / `install-zcode-hooks.mjs` | 把 hooks 合并写入 `~/.codex/hooks.json` / `~/.zcode/cli/config.json`（自动备份） |
+| `mtmr-pet-read.mjs` | 状态 → 宠物帧选择器（`MTMR_PET_PREFIX` / `MTMR_PET_READER`） |
+| `mtmr-pet.applescript` / `mtmr-pet-deepseek.applescript` | MTMR 宠物槽位脚本 |
+| `scripts/generate-mtmr-config.mjs` | 生成 MTMR `items.json`（布局的 source of truth） |
+| `scripts/extract-mtmr-pet-frames.sh` 等 | 从 spritesheet 裁切宠物帧 |
+| `assets/pet/einstein|deepseek/*.png` | 两只宠物的帧素材 |
+| `assets/readme/*` | README 的 hero、架构图与真实截图 |
+| `docs/zcode-usage-api.md` | GLM 额度接口的端点、字段与踩坑记录 |
+| `.state/*.json` | 运行时状态与缓存（自动生成，不入库） |
 
-当 Codex 通过 `apply_patch` 修改文件时，状态灯会优先显示本次补丁的行数跳动：
+## 与上游的差异
 
-- 单文件：`read.mjs +3 -0`
-- 多文件：`3文件 +24 -6`
+| 上游（[PPPHUANG/touch-bar-agent-status](https://github.com/PPPHUANG/touch-bar-agent-status)） | 本 Fork 新增 |
+|---|---|
+| Codex 状态灯（9 个 hooks） | ZCode（GLM）状态灯（7 个 hooks，`install-zcode-hooks.mjs`） |
+| Einstein 宠物跟随 Codex | DeepSeek 宠物独立跟随 GLM |
+| Codex 额度槽位 | GLM 额度槽位（`zcode-usage-read.mjs`） |
+| 手工配置 MTMR | `generate-mtmr-config.mjs` 一键生成 6 槽位布局 |
+| — | 状态机增强：`PostToolUseFailure`（碰了个钉子）、子代理识别（喊同事）、会话问候后自动回摸鱼 |
+| — | 额度重置时间显示与锚定策略（两个槽位） |
+| — | 中英双语 README |
 
-这里的增删统计来自 hook 收到的 patch 文本，不读取文件正文。
+## 致谢
 
-## Multi-Widget Touch Bar
-
-如果想利用更长的 Touch Bar，可以在 MTMR 的数组中加入多个 `shellScriptTitledButton`。每个小组件都调用同一个读取脚本，只是传不同的 `--slot` 和 `--text`：
-
-- `--slot main`: 主状态，例如 `我想想...`、`跑个命令`；空闲时显示 `摸鱼中...` 和走动的小宠物
-- `--slot timer`: 当前回合耗时，例如 `00:18`
-- `--slot tool`: 当前工具，例如 `Bash`、`Patch`、`Browser`
-- `--slot diff`: 当前补丁行数，例如 `+12 -3`
-- `--slot diff-add`: 新增行数，例如绿色 `+12`
-- `--slot diff-remove`: 删除行数，例如红色 `-3`
-- `--slot file`: 当前文件，例如 `read.mjs`
-- `--slot pet`: 单独的小宠物槽位，只显示宠物图标
-- `--slot walk --index N --count M`: 空闲时横向走动用的宠物槽位
-
-主状态槽位只负责显示文字；Einstein 宠物由独立的 `appleScriptTitledButton` 槽位负责动画。其他槽位在没有实际内容时会返回透明空白，例如空闲时不会再显示 `00:00`、`idle`、`+0 -0` 或工作区名。
-
-如果想让新增和删除分别显示绿色/红色，请用 `diff-add` 和 `diff-remove` 两个槽位；MTMR 的 Shell Script Widget 主要显示文本，颜色能力取决于 MTMR 版本。
-
-`timer`、`file` 和命令态的 `tool` 槽位会分别带本地 PNG 图标：时间、文本/文档、终端。
-
-MTMR 中的每个槽位都可以使用类似下面的配置：
-
-```json
-{
-  "type": "shellScriptTitledButton",
-  "width": 80,
-  "refreshInterval": 1,
-  "source": {
-    "inline": "\"/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node\" \"/Users/apple/dev/touch-bar-agent-status/codex-touchbar-read.mjs\" --slot timer --text"
-  }
-}
-```
-
-把 `--slot timer` 换成 `main`、`tool`、`diff`、`file` 等即可。
-
-## Hook Trust
-
-安装或修改 hook 后，运行 `codex` 并输入 `/hooks`，review/trust 这组 hook。Codex 会按 hook hash 记录信任状态，所以脚本更新后重新 trust 是正常的。
+- 感谢 **[PPPHUANG](https://github.com/PPPHUANG)** 的原始作品 [touch-bar-agent-status](https://github.com/PPPHUANG/touch-bar-agent-status)——"AI 工作搭子状态灯"的创意、Codex hooks 架构、Einstein 宠物与整套状态视觉都来自上游，本 Fork 只是站在它的肩膀上给 GLM 也安了个家。
+- 宠物像素素材分别来自 Codex（Einstein）与 DeepSeek（鲸鱼）应用内置资源，版权归各自作者所有。
+- [MTMR](https://github.com/Toxblh/MTMR) —— 让老 MacBook 的 Touch Bar 重获新生的开源项目。

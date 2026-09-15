@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="flowTitle">
+<title id="flowTitle">工作原理:agent hooks 与额度接口如何驱动 Touch Bar</title>
+<defs>
+<marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+<path d="M0,0 L8,4 L0,8 z" fill="#52525b"/>
+</marker>
+</defs>
+<rect x="40" y="46" width="250" height="72" rx="14" fill="#121218" stroke="#0d9488" stroke-width="1.2"/><text x="165.0" y="76" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" fill="#f4f4f5" text-anchor="middle">Codex 会话</text><text x="165.0" y="98" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="15" fill="#8b8b92" text-anchor="middle">9 个生命周期 hooks</text>
+<rect x="40" y="146" width="250" height="72" rx="14" fill="#121218" stroke="#2563eb" stroke-width="1.2"/><text x="165.0" y="176" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" fill="#f4f4f5" text-anchor="middle">ZCode 会话</text><text x="165.0" y="198" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="15" fill="#8b8b92" text-anchor="middle">7 个生命周期 hooks</text>
+<rect x="40" y="240" width="250" height="52" rx="14" fill="#121218" stroke="#7c3aed" stroke-width="1.2"/><text x="165.0" y="270" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" fill="#f4f4f5" text-anchor="middle">额度来源</text><text x="165.0" y="292" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="15" fill="#8b8b92" text-anchor="middle">app-server · monitor API</text>
+<rect x="370" y="96" width="280" height="72" rx="14" fill="#121218" stroke="#3f3f46" stroke-width="1.2"/><text x="510.0" y="126" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" fill="#f4f4f5" text-anchor="middle">touchbar-hook.mjs ×2</text><text x="510.0" y="148" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="15" fill="#8b8b92" text-anchor="middle">事件 → 状态映射(IDLE/RUN/TOOL/…)</text>
+<rect x="370" y="240" width="280" height="52" rx="14" fill="#121218" stroke="#7c3aed" stroke-width="1.2"/><text x="510.0" y="270" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" fill="#f4f4f5" text-anchor="middle">usage 读取器 ×2</text><text x="510.0" y="292" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="15" fill="#8b8b92" text-anchor="middle">重置时间锚定 · 5min 缓存</text>
+<rect x="730" y="96" width="250" height="72" rx="14" fill="#121218" stroke="#3f3f46" stroke-width="1.2"/><text x="855.0" y="126" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" fill="#f4f4f5" text-anchor="middle">.state 状态文件</text><text x="855.0" y="148" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="15" fill="#8b8b92" text-anchor="middle">仅事件 · 工具名 · 时间戳</text>
+<rect x="730" y="240" width="250" height="52" rx="14" fill="#121218" stroke="#7c3aed" stroke-width="1.2"/><text x="855.0" y="270" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="20" font-weight="700" fill="#f4f4f5" text-anchor="middle">.state 额度缓存</text><text x="855.0" y="292" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="15" fill="#8b8b92" text-anchor="middle">百分比 · 重置时间</text>
+
+<rect x="1040" y="100" width="128" height="64" rx="14" fill="#0d0d10" stroke="#3f3f46" stroke-width="1.2"/>
+<rect x="1050" y="112" width="12" height="40" rx="5" fill="#115e59"/>
+<rect x="1066" y="112" width="26" height="40" rx="5" fill="#18181b"/>
+<rect x="1096" y="112" width="30" height="40" rx="5" fill="#18181b" stroke="#3f3f46"/>
+<rect x="1130" y="112" width="12" height="40" rx="5" fill="#1e40af"/>
+<rect x="1146" y="112" width="12" height="40" rx="5" fill="#18181b" stroke="#3f3f46"/>
+<text x="1104" y="196" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="17" font-weight="700" fill="#f4f4f5" text-anchor="middle">MTMR</text>
+<text x="1104" y="218" font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="13" fill="#8b8b92" text-anchor="middle">状态 1s · 宠物 0.7s · 额度 5min</text>
+
+<line x1="292" y1="82" x2="366" y2="124" stroke="#52525b" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="292" y1="182" x2="366" y2="140" stroke="#52525b" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="652" y1="132" x2="726" y2="132" stroke="#52525b" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="292" y1="266" x2="366" y2="266" stroke="#52525b" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="652" y1="266" x2="726" y2="266" stroke="#52525b" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="982" y1="132" x2="1036" y2="134" stroke="#52525b" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="982" y1="266" x2="1036" y2="168" stroke="#52525b" stroke-width="1.5" marker-end="url(#arr)"/>
+
+<g font-family="-apple-system,'SF Pro Display','SF Pro Text','PingFang SC','Hiragino Sans GB','Microsoft YaHei','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif" font-size="14" fill="#6b6b73">
+  <text x="60" y="36">① 状态流:会话事件实时驱动</text>
+  <text x="60" y="230">② 额度流:只读接口 + 本地缓存</text>
+</g>
+</svg>
