@@ -11,13 +11,28 @@ const STATE_DIR = path.join(SCRIPT_DIR, ".state");
 const CACHE_FILE = process.env.CODEX_TOUCHBAR_USAGE_CACHE ||
   path.join(STATE_DIR, "codex-touchbar-usage.json");
 const CACHE_TTL_MS = positiveIntEnv("CODEX_TOUCHBAR_USAGE_CACHE_MS", 5 * 60_000);
+const CACHE_STALE_MS = Math.max(
+  CACHE_TTL_MS,
+  positiveIntEnv("CODEX_TOUCHBAR_USAGE_STALE_MS", 15 * 60_000),
+);
 const FETCH_TIMEOUT_MS = positiveIntEnv("CODEX_TOUCHBAR_USAGE_TIMEOUT_MS", 8_000);
 const CODEX_BIN_CANDIDATES = [
   process.env.CODEX_APP_SERVER_BIN,
+  "/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
+  "/Applications/Codex.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex",
   "/Applications/ChatGPT.app/Contents/Resources/codex",
   "/Applications/Codex.app/Contents/Resources/codex",
+  ...(process.env.PATH || "").split(path.delimiter).filter(Boolean)
+    .map((directory) => path.join(directory, "codex")),
 ].filter(Boolean);
-const CODEX_BIN = CODEX_BIN_CANDIDATES.find((candidate) => fs.existsSync(candidate));
+const CODEX_BIN = CODEX_BIN_CANDIDATES.find((candidate) => {
+  try {
+    fs.accessSync(candidate, fs.constants.X_OK);
+    return fs.statSync(candidate).isFile();
+  } catch {
+    return false;
+  }
+});
 
 function positiveIntEnv(name, fallback) {
   const value = Number.parseInt(process.env[name] || "", 10);
@@ -113,6 +128,7 @@ function requestRateLimits() {
     child.stderr.on("data", (chunk) => {
       stderr = `${stderr}${chunk}`.slice(-1000);
     });
+    child.stdin.on("error", (error) => finish(error));
     child.on("error", (error) => finish(error));
     child.on("close", (code) => {
       if (!settled) {
@@ -178,18 +194,7 @@ function formatResetTime(timestamp) {
   return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
-// Every account/rateLimits/read reports resetsAt as read-time + window
-// length (verified: two reads one minute apart drift by that minute), so
-// anchoring the display to each read would make the reset time advance
-// forever. Keep the previously observed window end until it lapses.
-function resolveWindowEnd(snapshot, previousEnd, now) {
-  if (Number.isFinite(previousEnd) && previousEnd > now) return previousEnd;
-  const fresh = snapshot?.primary?.resetsAt;
-  if (!Number.isFinite(fresh)) return null;
-  return fresh >= 1e12 ? fresh : fresh * 1000;
-}
-
-function formatQuota(snapshot, windowEnd) {
+function formatQuota(snapshot) {
   const windows = [snapshot?.primary, snapshot?.secondary].filter(Boolean);
   if (windows.length === 0) return "GPT暂不可用";
 
@@ -203,16 +208,17 @@ function formatQuota(snapshot, windowEnd) {
   else if (credits?.hasCredits && credits.balance) parts.push(`积分${credits.balance}`);
 
   // The bare time is the 5h window's quota reset time on the local clock.
-  const reset = formatResetTime(windowEnd);
+  const reset = formatResetTime(snapshot?.primary?.resetsAt);
   const resetPart = reset ? `-${reset}` : "";
   return `GPT${parts[0]}${resetPart}${parts.slice(1).map((part) => `-${part}`).join("")}`;
 }
 
 async function main() {
   const cached = readCache();
-  const cacheIsFresh = cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS;
+  const cacheAge = cached ? Date.now() - cached.fetchedAt : Infinity;
+  const cacheIsFresh = cacheAge >= 0 && cacheAge < CACHE_TTL_MS;
   if (cacheIsFresh) {
-    console.log(formatQuota(cached.rateLimits, cached.windowEnd));
+    console.log(formatQuota(cached.rateLimits));
     return;
   }
 
@@ -221,13 +227,14 @@ async function main() {
     const rateLimits = normalizeRateLimits(result);
     if (!rateLimits) throw new Error("Codex returned no rate-limit snapshot");
     const fetchedAt = Date.now();
-    const windowEnd = resolveWindowEnd(rateLimits, cached?.windowEnd, fetchedAt);
-    writeCache({ fetchedAt, rateLimits, windowEnd });
-    console.log(formatQuota(rateLimits, windowEnd));
+    writeCache({ fetchedAt, rateLimits });
+    console.log(formatQuota(rateLimits));
   } catch (error) {
     debug(error instanceof Error ? error.message : String(error));
-    if (cached) console.log(`~${formatQuota(cached.rateLimits, cached.windowEnd)}`);
-    else console.log("额度暂不可用");
+    const staleAge = cached ? Date.now() - cached.fetchedAt : Infinity;
+    if (staleAge >= 0 && staleAge < CACHE_STALE_MS) {
+      console.log(`~${formatQuota(cached.rateLimits)}`);
+    } else console.log("额度暂不可用");
   }
 }
 

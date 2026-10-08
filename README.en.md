@@ -152,11 +152,11 @@ Then run one real task in Codex and in ZCode — the Touch Bar should walk throu
 
 ## Quota details
 
-Neither API hands back a fixed reset time, so a little client-side handling is needed:
+Reset times are handled according to the data returned by each API:
 
-- **GPT (Codex)**: `resetsAt` always equals "read time + 5 hours" (a rolling window). Displaying it verbatim would keep it 5 hours away forever, so the reader anchors the window end on first observation, counts down stably, and re-anchors after it lapses.
+- **GPT (Codex)**: Percentages and reset times use the actual values returned by `account/rateLimits/read`, with `resetsAt` displayed in the local time zone. The reader detects current and legacy bundled Codex paths and also supports `PATH` and `CODEX_APP_SERVER_BIN`.
 - **GLM (ZCode)**: BigModel only returns `nextResetTime` while the 5-hour window holds unreturned consumption (rolling, follows the latest request). When present it is shown verbatim (matches the app's usage page); at 100% remaining an "observed time + 5h" placeholder anchor is displayed and switches to the real value once consumption starts.
-- Concurrent sessions share one state/cache file, last writer wins; a `~` prefix means the API failed and stale cached data is being shown.
+- Concurrent sessions share one state/cache file, last writer wins; a `~` prefix means the API failed and stale cached data is being shown. GPT falls back to cached data for at most 15 minutes, then displays "额度暂不可用". Set `CODEX_TOUCHBAR_USAGE_STALE_MS` to adjust this limit (never shorter than the normal cache lifetime).
 
 ## Pets
 
